@@ -1,3 +1,5 @@
+from enum import unique
+
 import numpy as np
 
 
@@ -28,7 +30,7 @@ def information_gain(table):
   for j in range(numberOfClasses):
     attIcount=0
     for i in range(numberOfAttributes):
-      print(table[i][j])
+      #print(table[i][j])
       attIcount += table[i][j]
     parentEntropy += (attIcount / totalCount) * (np.log2(attIcount / totalCount))
 
@@ -42,7 +44,7 @@ def information_gain(table):
     for j in range(numberOfClasses):
       if(table[i][j]/total != 0):
         nodeEntropy += total/totalCount * (table[i][j] / total) * (np.log2(table[i][j]/total))
-        print(nodeEntropy)
+        #print(nodeEntropy)
 
     #print("node entropy: ", nodeEntropy)
 
@@ -118,9 +120,85 @@ def chi_squared_yates(table):
     return chi_squared(table)
 
 
+def build_table(attr_col, class_labels, n_classes):
+  unique_vals = np.unique(attr_col)
+  n_vals = len(unique_vals)
+  table = np.zeros((n_vals, n_classes), dtype=int)
+  value_to_row = {val: i for i, val in enumerate(unique_vals)}
+  for attr_val, class_label in zip(attr_col, class_labels):
+    row = value_to_row[attr_val]
+    col = int(class_label)
+    table[row, col] += 1
+  return table
+
+
+def measure_quality(measure, table):
+  if measure == "ig":
+    return information_gain(table)
+
+  if measure == "gain_ratio":
+    return information_gain_ratio(table)
+
+  if measure == "chi2":
+    return chi_squared(table)
+
+  if measure == "chi2_yates":
+    return chi_squared_yates(table)
+  return 0
+
+def fit(X, y):
+
+  classes = np.unique(y)
+  n_classes_ = classes.shape[0]
+
+  best_score = 0
+  best_att = None
+  best_index = None
+  best_table = None
+
+  index = 0
+  for att in X:
+    table = build_table(att, y, n_classes_)
+    quality = measure_quality("ig", table)
+    if (best_att is None) or (quality > best_score):
+      best_score = quality
+      best_att = att
+      best_index = index
+      best_table = table
+    index += 1
+
+  print("Best attribute ", best_att)
+  print("Best index ", best_index)
+  print("Best table ", best_table)
+  print("Best quality ", best_score)
+  pass
+
+peaty = np.array([1,1,1,1,0,0,0,0,0,0])
+woody  = np.array(["no","yes","no","no","yes","yes","yes","yes","no","no"])
+sweet  = np.array(["yes","yes","no","no","no","yes","yes","yes","yes","yes"])
+region = np.array([0,0,0,0,0,1,1,1,1,1])
+class_labels = region
+
+n_classes = 2
+
+# Example: build table for "Peaty"
+table_peaty = build_table(peaty, class_labels, n_classes)
+print(table_peaty)
+
+# # Example: build table for "Woody"
+# table_woody = build_table(woody, class_labels, n_classes)
+# print(table_woody)
+#
+# # Example: build table for "Sweet"
+# table_sweet = build_table(sweet, class_labels, n_classes)
+# print(table_sweet)
+
+X = np.array([[1,1,1,1,0,0,0,0,0,0],["no","yes","no","no","yes","yes","yes","yes","no","no"], ["yes","yes","no","no","no","yes","yes","yes","yes","yes"]])
+y = region
+fit(X, y)
 
 testData = [[4,0],[1,5]]
 #0.6283
-print(information_gain_ratio(testData))
-print("chisquared: " , chi_squared(testData))
-print(chi_squared_yates(testData))
+#print(information_gain_ratio(testData))
+#print("chisquared: " , chi_squared(testData))
+#print(chi_squared_yates(testData))

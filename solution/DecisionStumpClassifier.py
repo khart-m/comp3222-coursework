@@ -1,3 +1,4 @@
+from numba.core.ir_utils import find_max_label
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.utils.validation import check_X_y, check_array
 import numpy as np
@@ -67,7 +68,7 @@ class DecisionStumpClassifier(BaseEstimator, ClassifierMixin):
       self.classes_ = None
       self.n_classes_ = None
 
-    def build_table(attr_col, class_labels, n_classes):
+    def build_table(self, attr_col, class_labels, n_classes):
       # when given categorical attributes and classes in any form, creates a contingency table
       unique_vals = np.unique(attr_col)
       n_vals = len(unique_vals)
@@ -142,10 +143,13 @@ class DecisionStumpClassifier(BaseEstimator, ClassifierMixin):
         best_index = None
         best_table = None
 
+        #check this
+        transposed_X = X.T
+
         index = 0
-        for att in X:
+        for att in transposed_X:
           table = self.build_table(att, y, self.n_classes_)
-          quality = self.measure_quality("ig", table)
+          quality = self.quality(table)
           if (best_att is None) or (quality > best_score):
             best_score = quality
             best_att = att
@@ -155,13 +159,76 @@ class DecisionStumpClassifier(BaseEstimator, ClassifierMixin):
 
         self.att_index = best_index
         self.att_table = best_table
+        print("best_att", best_att)
+        print("self.att_index", self.att_index)
+        print("self.att_table", self.att_table)
 
         pass
 
     def predict(self, X):
         """Classifier prediction logic here."""
-        pass
+        output = np.zeros(len(X), dtype=int)
+        probs = self.predict_proba(X)
+        i = 0
+        for prob in probs:
+          output[i] = self.find_max_label(prob)
+          i += 1
+        return output
 
+    # check - if probabilities are equal what to do
+    def find_max_label(self, prob):
+        max = 0
+        max_index = 0
+        for i in range(len(prob)):
+          if prob[i] > max:
+            max = prob[i]
+            max_index = i
+
+        return max_index
+    # Unseen attribute option errors
     def predict_proba(self, X):
         """Classifier prediction logic here."""
-        pass
+        # where x is [[1,0,1,1],[2,... and each inside array is a case i.e. X[1] predicts output[1]
+        # should output smth like the probability of it being each class for each input based on the table + alpha e.g. if there are three options, class1 class2 class3:
+        # [[0.3,0.3,0.4],....[p1,p2,p3]]
+
+        # initialise arrays
+        output = np.zeros((len(X), self.n_classes_), dtype=float)
+
+        n_classes = self.n_classes_
+
+        # for each row in x, what is attribute at the index
+        # based on that find the probability of it being each class
+        # p(class|value) = (count(v,c) + a)/(sumj(count(v,j) + a))
+        # from the att_table we can see [[1,5,2],[4,0,1]] -
+        # if the case has the attribute, it has 1/8 chance of class 0, 5/8 of class 1, 2/8 of class 3
+        # if it doesn't have the attribute, it has 4/5 chance of class 0, 0/5 of class 2, 1/5 of class 3
+        unique_vals = np.unique(X.T[self.att_index])
+        value_to_row = {v: i for i, v in enumerate(unique_vals)}
+        print("value to rows", value_to_row)
+        c = 0
+        for case in X:
+          print("case", case)
+          v = case[self.att_index]
+          print("index", self.att_index)
+          print("v", v)
+
+          if v in value_to_row:
+            row = value_to_row[v]
+            counts = self.att_table[row]
+          else:
+            counts = np.zeros(n_classes, dtype=int)
+
+          total = sum(counts) + (self.alpha * n_classes)
+
+          for classV in range(n_classes):
+            count = counts[classV] + self.alpha
+            p = (count)/total
+            print("inserting ", p, "into ", c, ",", classV)
+            output[c,classV] = p
+            print("output[c,classV]", output)
+            print(output[c,classV])
+          c += 1
+
+        print("output: ", output)
+        return output

@@ -156,8 +156,10 @@ def fit(X, y):
   best_index = None
   best_table = None
 
+  transposed_X = X.T
+
   index = 0
-  for att in X:
+  for att in transposed_X:
     table = build_table(att, y, n_classes_)
     quality = measure_quality("ig", table)
     if (best_att is None) or (quality > best_score):
@@ -177,6 +179,8 @@ peaty = np.array([1,1,1,1,0,0,0,0,0,0])
 woody  = np.array(["no","yes","no","no","yes","yes","yes","yes","no","no"])
 sweet  = np.array(["yes","yes","no","no","no","yes","yes","yes","yes","yes"])
 region = np.array([0,0,0,0,0,1,1,1,1,1])
+
+
 class_labels = region
 
 n_classes = 2
@@ -195,9 +199,10 @@ print(table_peaty)
 
 X = np.array([[1,1,1,1,0,0,0,0,0,0],["no","yes","no","no","yes","yes","yes","yes","no","no"], ["yes","yes","no","no","no","yes","yes","yes","yes","yes"]])
 y = region
-fit(X, y)
-
+fit(X.T, y)
 testData = [[4,0],[1,5]]
+
+print("array length: ", len(X.T))
 #0.6283
 #print(information_gain_ratio(testData))
 #print("chisquared: " , chi_squared(testData))

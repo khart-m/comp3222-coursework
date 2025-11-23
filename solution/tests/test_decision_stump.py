@@ -90,7 +90,7 @@ def test_unseen_category_fallback():
     stump.fit(X, y)
 
     # create unseen category case
-    X_unseen = np.array([["maybe", "no", "yes", "UnknownRegion"]], dtype=object)
+    X_unseen = np.array([["maybe", "no", "yes"]], dtype=object)
 
     probs = stump.predict_proba(X_unseen)[0]
 
@@ -111,7 +111,7 @@ def test_missing_values_treated_as_category():
     stump.fit(X, y)
 
     # Predict with a missing value
-    X_missing = np.array([[None, "no", "yes", "Islay"]], dtype=object)
+    X_missing = np.array([[None, "no", "yes"]], dtype=object)
 
     # Should not raise, should produce a valid probability vector
     probs = stump.predict_proba(X_missing)[0]
@@ -127,3 +127,66 @@ def test_predict():
   result = stump.predict(X)
   print(result)
   assert result.all() == y.all()
+
+def test_root_probs_correct():
+  X = np.array([
+    ["a"],
+    ["b"],
+    ["a"],
+    ["b"],
+    ["a"],
+  ], dtype=object)
+
+  y = np.array([0, 1, 0, 1, 0])  # classes 0 and 1: counts = [3, 2]
+
+  stump = DecisionStumpClassifier(alpha=1.0)
+  stump.fit(X, y)
+
+  # Expected Laplace-smoothed root prior:
+  # class 0: (3+1)/(5+1*2) = 4/7
+  # class 1: (2+1)/(5+1*2) = 3/7
+  expected = np.array([4 / 7, 3 / 7])
+
+  assert np.allclose(stump.root_probs, expected), \
+    "root_probs must store Laplace-smoothed class distribution"
+
+def test_unseen_value_uses_root_probs():
+  X = np.array([
+    ["red"],
+    ["blue"],
+    ["red"]
+  ], dtype=object)
+
+  y = np.array([0, 1, 0])  # counts = [2,1]
+
+  stump = DecisionStumpClassifier(alpha=1.0)
+  stump.fit(X, y)
+
+  X_unseen = np.array([["green"]], dtype=object)
+
+  probs = stump.predict_proba(X_unseen)[0]
+
+  assert np.allclose(probs, stump.root_probs), \
+    "Unseen category must return stored root_probs"
+
+def test_missing_value_is_category():
+  X = np.array([
+    ["yes"],
+    ["no"],
+    [None],
+    ["yes"],
+  ], dtype=object)
+
+  y = np.array([0, 1, 0, 0])
+
+  stump = DecisionStumpClassifier()
+  stump.fit(X, y)
+
+  # Predict on a missing value
+  X_missing = np.array([[None]], dtype=object)
+  probs = stump.predict_proba(X_missing)[0]
+
+  # Should sum to 1 and be valid
+  assert np.isclose(probs.sum(), 1.0)
+  assert np.all(probs >= 0.0)
+

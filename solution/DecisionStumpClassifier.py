@@ -100,7 +100,7 @@ class DecisionStumpClassifier(BaseEstimator, ClassifierMixin):
       self.att_categories = value_to_row
       for attr_val, class_label in zip(col, class_labels):
         row = value_to_row[attr_val]
-        col = int(class_label)
+        col = self.class_to_index[class_label]
         table[row, col] += 1
       return table
 
@@ -199,6 +199,8 @@ class DecisionStumpClassifier(BaseEstimator, ClassifierMixin):
       classes = np.unique(y)
       self.classes_ = classes
       self.n_classes_ = classes.shape[0]
+      self.class_to_index = {cls: i for i, cls in enumerate(classes)}
+      self.index_to_class = {i: cls for i, cls in enumerate(classes)}
 
       # pick best attribute to split on
       best_score = 0
@@ -235,13 +237,13 @@ class DecisionStumpClassifier(BaseEstimator, ClassifierMixin):
 
       self.att_index = best_index
       self.att_table = best_table
-      print("best_att", best_att)
+      #print("best_att", best_att)
       print("self.att_index", self.att_index)
-      print("self.att_table", self.att_table)
+      #print("self.att_table", self.att_table)
 
       totalCases = len(y)
       root_probs = np.zeros(self.n_classes_, dtype=float)
-      print("setting the root table... ")
+      #print("setting the root table... ")
       for i, cls in enumerate(classes):
         count = np.sum(y == cls)
         root_probs[i] = (count + self.alpha) / (totalCases + self.alpha * self.n_classes_)
@@ -261,7 +263,7 @@ class DecisionStumpClassifier(BaseEstimator, ClassifierMixin):
         -------
         - predicted class values
         """
-        output = np.zeros(len(X), dtype=int)
+        output = np.zeros(len(X), dtype=object)
         probs = self.predict_proba(X)
         i = 0
         for prob in probs:
@@ -278,7 +280,7 @@ class DecisionStumpClassifier(BaseEstimator, ClassifierMixin):
 
       Returns
       -------
-      - the max index of the highest probability
+      - the class label of the highest probability
       """
       max = 0
       max_index = 0
@@ -287,7 +289,7 @@ class DecisionStumpClassifier(BaseEstimator, ClassifierMixin):
           max = prob[i]
           max_index = i
 
-      return max_index
+      return self.index_to_class[max_index]
 
     def predict_proba(self, X):
         """
@@ -316,10 +318,10 @@ class DecisionStumpClassifier(BaseEstimator, ClassifierMixin):
         # if the case has the attribute, it has 1/8 chance of class 0, 5/8 of class 1, 2/8 of class 3
         # if it doesn't have the attribute, it has 4/5 chance of class 0, 0/5 of class 2, 1/5 of class 3
         value_to_row = self.att_categories
-        print("value to rows", value_to_row)
+        #print("value to rows", value_to_row)
         c = 0
         for case in X:
-          print("case", case)
+          #print("case", case)
           v = case[self.att_index]
           if v is None or (isinstance(v, float) and np.isnan(v)) or v == "":
             v = "<<MISSING>>"
@@ -332,10 +334,10 @@ class DecisionStumpClassifier(BaseEstimator, ClassifierMixin):
             for classV in range(n_classes):
               count = counts[classV] + self.alpha
               p = (count) / total
-              print("inserting ", p, "into ", c, ",", classV)
+              # print("inserting ", p, "into ", c, ",", classV)
               output[c, classV] = p
-              print("output[c,classV]", output)
-              print(output[c, classV])
+              # print("output[c,classV]", output)
+              # print(output[c, classV])
           else:
             #unseen categories at prediction - use root priors probs
             probs = self.root_probs
@@ -346,5 +348,5 @@ class DecisionStumpClassifier(BaseEstimator, ClassifierMixin):
 
           c += 1
 
-        print("output: ", output)
+        #print("output: ", output)
         return output

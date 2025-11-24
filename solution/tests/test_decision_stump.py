@@ -2,6 +2,8 @@ import numpy as np
 import pytest
 import numpy as np
 import pytest
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
 
 from solution.DecisionStumpClassifier import DecisionStumpClassifier
 
@@ -190,3 +192,72 @@ def test_missing_value_is_category():
   assert np.isclose(probs.sum(), 1.0)
   assert np.all(probs >= 0.0)
 
+def clean_bom(path):
+  # remove ALL BOM characters inside the file, not just at the start
+  with open(path, "r", encoding="utf-8") as f:
+    text = f.read()
+
+  cleaned = text.replace("\ufeff", "")  # remove BOM everywhere
+
+  with open(path, "w", encoding="utf-8") as f:
+    f.write(cleaned)
+def getAccuracy(file_path, stump):
+  # load data for .arff files
+  print(file_path)
+  clean_bom(file_path)
+  if(file_path.endswith(".arff")):
+    from scipy.io import arff
+    with open(file_path, "r", encoding="utf-8-sig") as f:
+      data, meta = arff.loadarff(f)
+    data = np.asarray(data.tolist(), dtype=object)
+    X = np.array(data[:,:-1], dtype=str)
+    y = np.array(data[:,-1], dtype=str)
+  else:
+    raw = np.loadtxt(file_path, delimiter=",", dtype=str)
+    X = raw[:,:-1]
+    y = raw[:,-1]
+
+  X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=123)
+  #print(X)
+  #print(X_train)
+  stump
+  stump.fit(X_train, y_train)
+
+  y_pred = stump.predict(X_test)
+  acc = accuracy_score(y_test, y_pred)
+  #print("prediciton: ", y_pred[:5])
+  #print("actual:", y_test[:5])
+  print("accuracy:", acc)
+  return acc
+
+#TODO: fertility should return float point error but doesnt...
+def test_using_data():
+  stump = DecisionStumpClassifier()
+  files = ["data/balance-scale/balance-scale.arff",
+           "data/balloons/balloons.data",
+           "data/chess-krvk/chess-krvk.arff",
+           "data/chess-krvkp/chess-krvkp.arff",
+           "data/connect-4/connect-4.arff",
+           "data/contraceptive-method/contraceptive-method.arff",
+           "data/fertility/fertility.arff",
+           "data/habermans-survival/habermans-survival.arff",
+           "data/hayes-roth/hayes-roth.arff",
+           "data/led-display/led-display.arff",
+           "data/lymphography/lymphography.arff",
+           "data/molecular-promoters/molecular-promoters.arff",
+           "data/molecular-splice/molecular-splice.arff",
+           "data/monks-1/monks-1.arff",
+           "data/monks-2/monks-2.arff",
+           "data/monks-3/monks-3.arff",
+           "data/nursery/nursery.arff",
+           "data/optdigits/optdigits.arff",
+           "data/pendigits/pendigits.arff",
+           "data/semeion/semeion.arff",
+           "data/spect-heart/spect-heart.arff",
+           "data/tic-tac-toe/tic-tac-toe.arff",
+           "data/zoo/zoo.arff"]
+  for i in range(23):
+    #print("getting accuracy for:", files[i])
+    acc = getAccuracy(files[i], DecisionStumpClassifier())
+
+  assert acc >=0.6

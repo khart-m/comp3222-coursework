@@ -1,6 +1,6 @@
 @RELATION nursey
 
-@ATTRIBUTE attribute_0 {great_pret,pretentious,usual,﻿usual}
+@ATTRIBUTE attribute_0 {great_pret,pretentious,usual,usual}
 @ATTRIBUTE attribute_1 {critical,improper,less_proper,proper,very_crit}
 @ATTRIBUTE attribute_2 {complete,completed,foster,incomplete}
 @ATTRIBUTE attribute_3 {more,1,2,3}
@@ -11,7 +11,7 @@
 @ATTRIBUTE class {not_recom,priority,recommend,spec_prior,very_recom}
 
 @DATA
-﻿usual,proper,complete,1,convenient,convenient,nonprob,recommended,recommend
+usual,proper,complete,1,convenient,convenient,nonprob,recommended,recommend
 usual,proper,complete,1,convenient,convenient,nonprob,priority,priority
 usual,proper,complete,1,convenient,convenient,nonprob,not_recom,not_recom
 usual,proper,complete,1,convenient,convenient,slightly_prob,recommended,recommend

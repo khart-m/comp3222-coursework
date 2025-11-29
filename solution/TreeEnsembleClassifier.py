@@ -23,6 +23,7 @@ class TreeEnsembleClassifier(BaseEstimator, ClassifierMixin):
         self.features_subsets = []
         self.quality_measures = []
         self.estimators = []
+        self.classes = 0
   def validate_inputs(self, X):
     """
     This ensemble should support categorical inputs only
@@ -131,6 +132,8 @@ class TreeEnsembleClassifier(BaseEstimator, ClassifierMixin):
     reduced_X = self.random_features(sampled_X)
     random_qualities = self.random_quality()
 
+    self.classes = np.unique(y)
+
     for i in range(self.n_estimators):
       est = clone(self.base_estimator)
       est.quality_measure = random_qualities[i]
@@ -144,7 +147,63 @@ class TreeEnsembleClassifier(BaseEstimator, ClassifierMixin):
     return self
 
   def predict(self, X):
-    pass
+
+    # structure to hold the predictions
+
+    preds = np.empty((self.n_estimators, len(X)), dtype=object)
+
+    for i, (est, feat_idx) in enumerate(zip(self.estimators_, self.feature_subsets_)):
+      Xi = X[:, feat_idx]
+      preds[i] = est.predict(Xi)
+
+    if not self.average_probas:
+      final_preds = np.empty(len(X), dtype=object)
+      for i in range(len(X)):
+        votes = preds[:, i]
+        classes, counts = np.unique(votes, return_counts=True)
+
+        final_pred = classes[np.argmax(counts)]
+        final_preds[i] = final_pred
+
+      return final_preds
+    return self.predict_proba(X)
+
 
   def predict_proba(self, X):
-    pass
+
+    if self.average_probas:
+      # will hold probabilities for each class, for each row of data
+      sum_probas = np.zeros((len(X), len(self.classes)), dtype=float)
+
+      # loop through all estimators
+      for est, feat_idx in zip(self.estimators, self.features_subsets):
+        Xi = X[:, feat_idx]
+
+        est_proba = est.predict_proba(Xi)
+        est_classes = est.classes_
+
+        # because estimators might have different class orders
+        aligned = np.zeros((len(X), len(self.classes)), dtype=float)
+
+        for i, cls in enumerate(est_classes):
+          col_index = np.where(self.classes == cls)[0][0]
+          aligned[:, col_index] = est_proba[:, i]
+
+        sum_probas += aligned
+
+      prob_avg = sum_probas/self.n_estimators
+      return prob_avg
+
+    else:
+
+      vote_counts = np.zeros((len(X), len(self.classes)), dtype=int)
+      for est, feat_idx in zip(self.estimators, self.features_subsets):
+        Xi = X[:, feat_idx]
+        preds = est.predict(Xi)
+        for i in range(len(X)):
+          voted_class = pred[i]
+          cls_index = np.where(self.classes == voted_class)[0][0]
+          vote_counts[i, cls_index] += 1
+      vote_proportions = vote_counts/self.n_estimators
+    return vote_proportions
+

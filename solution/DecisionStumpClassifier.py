@@ -40,6 +40,8 @@ class DecisionStumpClassifier(BaseEstimator, ClassifierMixin):
       self.classes_ = None
       self.n_classes_ = None
 
+
+
     def check_data(self, X):
       """
       Ensure X contains only categorical (string or integer) features.
@@ -51,33 +53,44 @@ class DecisionStumpClassifier(BaseEstimator, ClassifierMixin):
       -------
       - raises error if data is wrong
       """
-      # Case: pandas DataFrame
-      if isinstance(X, pd.DataFrame):
-        for col, dtype in X.dtypes.items():
-          if pd.api.types.is_float_dtype(dtype):
-            raise TypeError(
-                f"Column '{col}' is float-valued; only categorical (int or string) "
-                f"features are allowed."
-            )
-        return
+      for v in X.ravel():
+        if isinstance(v, str):
+          try:
+            f = float(v)
+            if not f.is_integer():
+              raise TypeError("X contains float values; only categorical features are allowed.")
+          except ValueError:
+            pass
 
-      # Case: numpy array
-      if isinstance(X, np.ndarray):
-        if np.issubdtype(X.dtype, np.floating):
-          raise TypeError(
-              "X contains float values; only categorical (int or string) "
-              "features are allowed."
-          )
-        # If dtype=object, ensure no floats hidden inside
-        if X.dtype == object:
-          if any(isinstance(v, float) for v in X.ravel()):
-            raise TypeError(
-                "X contains float values inside an object array; "
-                "only categorical features are allowed."
-            )
-        return
+      # # Case: pandas DataFrame
+      # if isinstance(X, pd.DataFrame):
+      #   for col, dtype in X.dtypes.items():
+      #     if pd.api.types.is_float_dtype(dtype):
+      #       raise TypeError(
+      #           "X contains float values; only categorical features are allowed."
+      #       )
+      #   return
+      #
+      # # Case: numpy array
+      # if isinstance(X, np.ndarray):
+      #   if np.issubdtype(X.dtype, np.floating):
+      #     raise TypeError(
+      #          "X contains float values; only categorical features are allowed."
+      #     )
+      #   # If dtype=object, ensure no floats hidden inside
+      #   if X.dtype == object:
+      #     if any(isinstance(v, float) for v in X.ravel()):
+      #       raise TypeError(
+      #           "X contains float values; only categorical features are allowed."
+      #       )
+      #   return
+      # # if isinstance(v, str)
+      # # f = float()
+      # # if not f.is_integer():
+
+
       # Otherwise unsupported type
-      raise TypeError("X must be a numpy array or a pandas DataFrame.")
+      # raise TypeError("X must be a numpy array or a pandas DataFrame.")
 
     def build_table(self, attr_col, class_labels, n_classes):
       """

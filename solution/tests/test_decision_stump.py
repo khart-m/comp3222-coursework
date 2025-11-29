@@ -59,7 +59,7 @@ def test_deterministic_attribute_choice():
     stump1.fit(X, y)
     stump2.fit(X, y)
 
-    assert stump1.att_index == stump2.att_index, \
+    assert stump1.att_index_ == stump2.att_index_, \
         "Attribute index should be deterministic when random_state is fixed"
 
 
@@ -149,7 +149,7 @@ def test_root_probs_correct():
   # class 1: (2+1)/(5+1*2) = 3/7
   expected = np.array([4 / 7, 3 / 7])
 
-  assert np.allclose(stump.root_probs, expected), \
+  assert np.allclose(stump.root_probs_, expected), \
     "root_probs must store Laplace-smoothed class distribution"
 
 def test_unseen_value_uses_root_probs():
@@ -168,7 +168,7 @@ def test_unseen_value_uses_root_probs():
 
   probs = stump.predict_proba(X_unseen)[0]
 
-  assert np.allclose(probs, stump.root_probs), \
+  assert np.allclose(probs, stump.root_probs_), \
     "Unseen category must return stored root_probs"
 
 def test_missing_value_is_category():

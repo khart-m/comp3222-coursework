@@ -61,7 +61,7 @@ def split_information(table):
   x = 0
   for i in range(numberOfAttributes):
     totalCount += sum(table[i])
-    print(totalCount)
+    #print(totalCount)
   for i in range(numberOfAttributes):
     x = sum(table[i])/totalCount
     if(x != 0):

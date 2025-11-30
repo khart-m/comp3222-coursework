@@ -33,6 +33,7 @@ class DecisionStumpClassifier(BaseEstimator, ClassifierMixin):
       self.att_table_: [[int]] | None = None
       self.att_categories_: dict[str,int] | None = None
 
+
       self.root_probs_: [int] | None = None
 
       self.feature_values_ = None
@@ -110,12 +111,12 @@ class DecisionStumpClassifier(BaseEstimator, ClassifierMixin):
       n_vals = len(unique_vals)
       table = np.zeros((n_vals, n_classes), dtype=int)
       value_to_row = {val: i for i, val in enumerate(unique_vals)}
-      self.att_categories_ = value_to_row
+      #self.att_categories_ = value_to_row
       for attr_val, class_label in zip(col, class_labels):
         row = value_to_row[attr_val]
         col = self.class_to_index_[class_label]
         table[row, col] += 1
-      return table
+      return table, value_to_row
 
     def clean_column(self, col):
       """
@@ -220,6 +221,7 @@ class DecisionStumpClassifier(BaseEstimator, ClassifierMixin):
       best_att = None
       best_index = None
       best_table = None
+      best_value_to_row = None
 
       transposed_X = X.T
 
@@ -239,20 +241,22 @@ class DecisionStumpClassifier(BaseEstimator, ClassifierMixin):
       index = 0
       for index in candidate_indices:
         att = transposed_X[index]
-        table = self.build_table(att, y, self.n_classes_)
+        table, value_to_row = self.build_table(att, y, self.n_classes_)
         quality = self.quality(table)
         if (best_att is None) or (quality > best_score):
           best_score = quality
           best_att = att
           best_index = index
           best_table = table
+          best_value_to_row = value_to_row
         index += 1
 
       self.att_index_ = best_index
       self.att_table_ = best_table
+      self.att_categories_ = best_value_to_row
       #print("best_att", best_att)
-      #print("self.att_index", self.att_index)
-      #print("self.att_table", self.att_table)
+      #print("self.att_index", self.att_index_)
+      #print("self.att_table", self.att_table_)
 
       totalCases = len(y)
       root_probs = np.zeros(self.n_classes_, dtype=float)
@@ -343,16 +347,21 @@ class DecisionStumpClassifier(BaseEstimator, ClassifierMixin):
 
           if v in value_to_row:
             row = value_to_row[v]
-            counts = self.att_table_[row]
-            total = sum(counts) + (self.alpha * n_classes)
+            if row < len(self.att_table_):
+              counts = self.att_table_[row]
+              total = sum(counts) + (self.alpha * n_classes)
 
-            for classV in range(n_classes):
-              count = counts[classV] + self.alpha
-              p = (count) / total
-              # print("inserting ", p, "into ", c, ",", classV)
-              output[c, classV] = p
-              # print("output[c,classV]", output)
-              # print(output[c, classV])
+              for classV in range(n_classes):
+                count = counts[classV] + self.alpha
+                p = (count) / total
+                # print("inserting ", p, "into ", c, ",", classV)
+                output[c, classV] = p
+                # print("output[c,classV]", output)
+                # print(output[c, classV])
+            else:
+              print(c, v, row, value_to_row, self.att_table_.shape, self.att_categories_)
+              probs = self.root_probs_
+              output[c] = probs
           else:
             #unseen categories at prediction - use root priors probs
             probs = self.root_probs_

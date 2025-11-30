@@ -20,7 +20,7 @@ class TreeEnsembleClassifier(BaseEstimator, ClassifierMixin):
       Seed for reproducibility.
   """
 
-  def __init__(self, base_estimator=None, n_estimators=100, average_probas=True, random_state=None, ):
+  def __init__(self, base_estimator=None, n_estimators=50, average_probas=True, random_state=None, ):
         self.base_estimator = base_estimator
         if base_estimator is None:
           self.base_estimator = DecisionStumpClassifier()
@@ -164,7 +164,6 @@ class TreeEnsembleClassifier(BaseEstimator, ClassifierMixin):
       preds[i] = est.predict(Xi)
 
     if not self.average_probas:
-      print("returning majority class")
       final_preds = np.empty(len(X), dtype=object)
       for i in range(len(X)):
         votes = preds[:, i]
@@ -175,7 +174,6 @@ class TreeEnsembleClassifier(BaseEstimator, ClassifierMixin):
 
       return final_preds
     else:
-      print("calling predict proba - and returning argmax")
       probas = self.predict_proba(X)
       class_indices = np.argmax(probas, axis=1)
       return self.classes_[class_indices]

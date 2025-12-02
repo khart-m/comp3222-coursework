@@ -336,7 +336,7 @@ def test_ranked_acc():
 
   table_data = []
   for i, fn in enumerate(fileNames):
-    row = [fn] + list(scores[i]) + winners[i]
+    row = [fn] + list(scores[i]) + [winners[i]]
     table_data.append(row)
   columns = ['Dataset'] + dataNames + ['Winner']
   tbl = ax.table(cellText=table_data, colLabels=columns, loc='center')

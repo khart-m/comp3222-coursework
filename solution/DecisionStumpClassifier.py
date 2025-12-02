@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from numba.core.ir_utils import find_max_label
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.utils.validation import check_X_y, check_array

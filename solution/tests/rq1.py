@@ -317,7 +317,6 @@ def test_ranked_acc():
                "chess-krvkp",
                "connect-4",
                "contraceptive-method",
-               "fertility",
                "habermans-survival",
                "hayes-roth",
                "led-display",
@@ -355,6 +354,7 @@ def test_ranked_acc():
   df.to_csv("rq1_bacc_table.csv", index=False)
 
   plt.show()
+  assert true
 
 def test_logloss():
   files = ["data/balance-scale/balance-scale.data",

@@ -138,11 +138,11 @@ class TreeEnsembleClassifier(BaseEstimator, ClassifierMixin):
     sampled_X, sampled_y = self.random_sample(X, y)
     reduced_X = self.random_features(sampled_X)
     random_qualities = self.random_quality()
-
     self.classes_ = np.unique(y)
 
     for i in range(self.n_estimators):
       est = clone(self.base_estimator)
+      est.random_state = self.random_state
       est.quality_measure = random_qualities[i]
 
       Xi = reduced_X[i]

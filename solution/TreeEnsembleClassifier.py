@@ -119,9 +119,6 @@ class TreeEnsembleClassifier(BaseEstimator, ClassifierMixin):
 
     return self.quality_measures_
 
-  def boost(self):
-    pass
-
   def fit(self, X, y):
     """
     Validate inputs

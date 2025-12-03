@@ -20,6 +20,10 @@ import matplotlib.pyplot as plt
 from scipy.stats import friedmanchisquare
 from aeon.visualisation import plot_critical_difference
 
+'''
+RQ2
+'''
+
 def metrics_(file, random_state):
   print("Testing normal data vs ohe for", file)
   X,y = dl.load_tabular_xy(file)
@@ -193,86 +197,6 @@ def test_metrics():
   metrics = ["Accuracy", "Balanced accuracy", "Log loss", "Roc auc"]
   save_results(metrics, tree_scores, forest_scores, ada_scores, "Tree Ensemble", "Random Forest", "AdaBoost", "treeEnsemble vs randomForest vs adaBoost", "rq2metrics")
 
-
-
-
-def test_fig():
-  #i want to do it so that it finds the average over all datasets for normal and ohe
-  files = ["data/balance-scale/balance-scale.data",
-           "data/balloons/balloons.data",
-           "data/chess-krvkp/chess-krvkp.data",
-           "data/contraceptive-method/contraceptive-method.data",
-           "data/habermans-survival/habermans-survival.data",
-           "data/hayes-roth/hayes-roth.data",
-           "data/led-display/led-display.data",
-           "data/lymphography/lymphography.data",
-           "data/molecular-promoters/molecular-promoters.data",
-           "data/molecular-splice/molecular-splice.data",
-           "data/monks-1/monks-1.data",
-           "data/monks-2/monks-2.data",
-           "data/monks-3/monks-3.data",
-           "data/optdigits/optdigits.data",
-           "data/semeion/semeion.data",
-           "data/spect-heart/spect-heart.data",
-           "data/tic-tac-toe/tic-tac-toe.data",
-           "data/zoo/zoo.data"]
-  fileNames= ["balance-scale",
-           "balloons",
-           "chess-krvkp",
-           "contraceptive-method",
-           "habermans-survival",
-           "hayes-roth",
-           "led-display",
-           "lymphography",
-           "molecular-promoters",
-           "molecular-splice",
-           "monks-1",
-           "monks-2",
-           "monks-3",
-           "optdigits",
-           "semeion",
-           "spect-heart",
-           "tic-tac-toe",
-           "zoo"]
-  normalAcc = []
-  oheAcc = []
-  normalBacc = []
-  oheBacc = []
-  normalLL = []
-  oheLL = []
-  normalRoc = []
-  oheRoc = []
-  for file in files:
-    nAcc, oAcc = metrics_ohe(file, "accuracy", 0)
-    normalAcc.append(nAcc)
-    oheAcc.append(oAcc)
-    nBacc, oBacc = metrics_ohe(file, "balanced_accuracy", 0)
-    normalBacc.append(nBacc)
-    oheBacc.append(oBacc)
-    nLL, oLL = metrics_ohe(file, "log_loss", 0)
-    normalLL.append(nLL)
-    oheLL.append(oLL)
-    nR, oR = metrics_ohe(file, "roc auc", 0)
-    normalRoc.append(nR)
-    oheRoc.append(oR)
-
-
-
-  normalAccuracy = np.average(normalAcc)
-  oheAccuracy = np.average(oheAcc)
-  normalBalancedAcc = np.average(normalBacc)
-  oheBalancedAcc = np.average(oheBacc)
-  normalLogLoss = np.average(normalLL)
-  oheLogLoss = np.average(oheLL)
-  normalRocAuc = np.average(normalRoc)
-  oheRocAuc = np.average(oheRoc)
-  normalMetrics = [normalAccuracy, normalBalancedAcc, normalLogLoss, normalRocAuc]
-  oheMetrics = [oheAccuracy, oheBalancedAcc, oheLogLoss, oheRocAuc]
-  print(normalRocAuc, oheRocAuc)
-
-  metrics = ["Accuracy", "Balanced accuracy", "Log loss", "Roc auc"]
-  save_results(metrics, normalMetrics, oheMetrics, "Normal", "OHE", "normal vs ohe", "normalVsOhe")
-
 def test_wilcoxon():
   normal = [0.592809688688346,
 0.6416666666666666,
@@ -321,8 +245,27 @@ def test_wilcoxon():
   print(normal, ohe)
   print(wilcoxon(normal, ohe, alternative="two-sided"))
 
+def bacc(file, random_state):
+  print("Testing normal data vs ohe for", file)
+  X,y = dl.load_tabular_xy(file)
+  ohe = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+  X_ohe = ohe.fit_transform(X)
+  X_train, X_test, y_train, y_test = train_test_split(X_ohe, y, test_size=0.3, random_state=random_state)
+  clf0 = TreeEnsembleClassifier(average_probas=True, random_state=random_state)
+  clf1 = RandomForestClassifier(n_estimators=50, random_state=random_state)
+  clf2 = AdaBoostClassifier(n_estimators=50, random_state=random_state)
+  clf0.fit(X_train, y_train)
+  clf1.fit(X_train, y_train)
+  clf2.fit(X_train, y_train)
+  pred0 = clf0.predict(X_test)
+  pred1 = clf1.predict(X_test)
+  pred2 = clf2.predict(X_test)
 
+  bacc0 = balanced_accuracy_score(y_test, pred0)
+  bacc1 = balanced_accuracy_score(y_test, pred1)
+  bacc2 = balanced_accuracy_score(y_test, pred2)
 
+  return bacc0, bacc1, bacc2
 
 def getBacc():
   files = ["data/balance-scale/balance-scale.data",
@@ -355,7 +298,7 @@ def getBacc():
     rBacc = []
     aBacc = []
     for i in range(5):
-      t, r, a = metrics_(f, i)
+      t, r, a = bacc(f, i)
       tBacc.append(t)
       rBacc.append(r)
       aBacc.append(a)
@@ -363,52 +306,6 @@ def getBacc():
     forestBacc.append(np.average(rBacc))
     adaBacc.append(np.average(aBacc))
   return [treeBacc, forestBacc, adaBacc]
-
-
-def bacc_per_data():
-  """
-  Averages the balanced accuracy per dataset over random seeds 0 - 4
-  Returns
-  -------
-  rows - data
-  columns - bacc dataset0 vs ohe dataset1
-  """
-  output = []
-  files = ["data/balance-scale/balance-scale.data",
-           "data/balloons/balloons.data",
-           "data/chess-krvk/chess-krvk.data",
-           "data/chess-krvkp/chess-krvkp.data",
-           "data/contraceptive-method/contraceptive-method.data",
-           "data/connect-4/connect-4.data",
-           "data/habermans-survival/habermans-survival.data",
-           "data/hayes-roth/hayes-roth.data",
-           "data/led-display/led-display.data",
-           "data/lymphography/lymphography.data",
-           "data/molecular-promoters/molecular-promoters.data",
-           "data/molecular-splice/molecular-splice.data",
-           "data/monks-1/monks-1.data",
-           "data/monks-2/monks-2.data",
-           "data/monks-3/monks-3.data",
-           "data/nursery/nursery.data",
-           "data/optdigits/optdigits.data",
-           "data/pendigits/pendigits.data",
-           "data/semeion/semeion.data",
-           "data/spect-heart/spect-heart.data",
-           "data/tic-tac-toe/tic-tac-toe.data",
-           "data/zoo/zoo.data"]
-  for f in files:
-    nB = []
-    oB = []
-    for i in range(5):
-      print(i)
-      n, o = metrics_ohe(f, "balanced_accuracy", i)
-      nB.append(n)
-      oB.append(o)
-    avNB = np.average(nB)
-    avOB = np.average(oB)
-    out = [avNB,avOB]
-    output.append(out)
-  return output
 
 def test_ranked_acc():
   scores = np.vstack(getBacc()).T
@@ -461,11 +358,74 @@ def test_ranked_acc():
 def test_cd():
   # uses pairwise wilcoxon sign rank
   # has default value of 0.1 critical value for statistical test of difference
-  treeEnsemble = []
-  randomForest = []
-  adaBoost = []
+  treeEnsemble = [0.5654054854061151,
+0.725,
+0.07005023041650994,
+0.9069656879024135,
+0.3333333333333333,
+0.3333333333333333,
+0.5,
+0.4924192909487027,
+0.5413209282977085,
+0.3215382205513785,
+0.8357423205449521,
+0.3333333333333333,
+0.7655919021969376,
+0.5,
+0.9289711208618663,
+0.582284977810599,
+0.7085566381908416,
+0.48755367501442637,
+0.43100887406437394,
+0.7147229330471355,
+0.5,
+0.3095238095238095]
+  randomForest = [0.592860294052756,
+      0.75,
+      0.705802786964273,
+      0.9907632238601962,
+      0.49303830734537935,
+      0.6074114409856026,
+      0.5525474881499272,
+      0.8162374499139204,
+      0.7128257704627673,
+      0.5502001413282878,
+      0.872813845511214,
+      0.9529708264381561,
+      0.9908843516829353,
+      0.7247781499888989,
+      0.9774759792162696,
+      0.878936720653881,
+      0.9456892372892556,
+      0.8820757708773259,
+      0.9242418583026785,
+      0.7143110249859252,
+      0.9642339851233512,
+      0.9206349206349206]
+  adaBoost = [0.6414487504869781,
+      0.7,
+      0.0973725803650871,
+      0.9467765154381503,
+      0.46913922932143787,
+      0.42888986126366824,
+      0.5086184180636955,
+      0.6658823529411764,
+      0.6515989901910955,
+      0.45160870679663584,
+      0.9322953216374268,
+      0.9375481940063551,
+      0.7655919021969376,
+      0.46199734608825516,
+      0.9528147184503057,
+      0.6248077220323836,
+      0.7385688308383644,
+      0.555142721184992,
+      0.5753702526274453,
+      0.6780040575234155,
+      0.7448849802699745,
+      0.6968253968253968]
   scores = np.vstack([treeEnsemble, randomForest, adaBoost]).T
-  labels = ["Tree Ensemble", "Random Forest", "AdaBoost"]
+  labels = ["TE", "RF", "AB"]
   files = ["balance-scale",
                "balloons",
                "chess-krvk",
@@ -489,32 +449,4 @@ def test_cd():
                "tic-tac-toe",
                "zoo"]
   fig, ax, p_values = plot_critical_difference(scores, labels, return_p_values=True)
-  fig.savefig("cd_diag.pngjui8")
-
-
-def test_logloss():
-  files = ["data/balance-scale/balance-scale.data",
-           "data/balloons/balloons.data",
-           "data/chess-krvkp/chess-krvkp.data",
-           "data/contraceptive-method/contraceptive-method.data",
-           "data/habermans-survival/habermans-survival.data",
-           "data/hayes-roth/hayes-roth.data",
-           "data/led-display/led-display.data",
-           "data/lymphography/lymphography.data",
-           "data/molecular-promoters/molecular-promoters.data",
-           "data/molecular-splice/molecular-splice.data",
-           "data/monks-1/monks-1.data",
-           "data/monks-2/monks-2.data",
-           "data/monks-3/monks-3.data",
-           "data/optdigits/optdigits.data",
-           "data/semeion/semeion.data",
-           "data/spect-heart/spect-heart.data",
-           "data/tic-tac-toe/tic-tac-toe.data",
-           "data/zoo/zoo.data"]
-  for f in files:
-    print(metrics_ohe(f, "roc auc", 1))
-
-
-#acc b acc tpr tnr prec f1
-#wilcoxon signed test - true or false output
-#test accuracy, balanced accuracy, AUROC and NLL
+  fig.savefig("cd_diag.png")

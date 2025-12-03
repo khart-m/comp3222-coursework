@@ -65,35 +65,6 @@ class DecisionStumpClassifier(BaseEstimator, ClassifierMixin):
           except ValueError:
             pass
 
-      # # Case: pandas DataFrame
-      # if isinstance(X, pd.DataFrame):
-      #   for col, dtype in X.dtypes.items():
-      #     if pd.api.types.is_float_dtype(dtype):
-      #       raise TypeError(
-      #           "X contains float values; only categorical features are allowed."
-      #       )
-      #   return
-      #
-      # # Case: numpy array
-      # if isinstance(X, np.ndarray):
-      #   if np.issubdtype(X.dtype, np.floating):
-      #     raise TypeError(
-      #          "X contains float values; only categorical features are allowed."
-      #     )
-      #   # If dtype=object, ensure no floats hidden inside
-      #   if X.dtype == object:
-      #     if any(isinstance(v, float) for v in X.ravel()):
-      #       raise TypeError(
-      #           "X contains float values; only categorical features are allowed."
-      #       )
-      #   return
-      # # if isinstance(v, str)
-      # # f = float()
-      # # if not f.is_integer():
-
-
-      # Otherwise unsupported type
-      # raise TypeError("X must be a numpy array or a pandas DataFrame.")
 
     def build_table(self, attr_col, class_labels, n_classes):
       """
@@ -183,34 +154,7 @@ class DecisionStumpClassifier(BaseEstimator, ClassifierMixin):
       # y should be [class, class, ...]
 
       self.check_data(X)
-      """
-      # check and format y
-      y_arr = np.asarray(y)
-      if(y_arr.ndim != 1):
-        raise ValueError("y not 1D array")
-      if not np.issubdtype(y_arr.dtype, np.floating):
-        try:
-          y_arr = y_arr.astype(int)
-        except Exception:
-          raise TypeError("y must be integer-encoded class labels 0..c-1.")
 
-      # check and format x
-      if isinstance(X, pd.DataFrame):
-        X_df = X.reset_index(drop=True)
-        n_samples, n_features = X_df.shape
-      else:
-        X_arr = np.asarray(X)
-        if X_arr.ndim == 1:
-          # single feature column
-          X_arr = X_arr.reshape(-1, 1)
-        n_samples, n_features = X_arr.shape
-        # for uniform handling below, wrap numpy array as X_arr
-        X_df = None
-
-        if n_samples != y_arr.shape[0]:
-          raise ValueError("Number of samples in X and y do not match.")
-
-      """
       # classes
       classes = np.unique(y)
       self.classes_ = classes
@@ -256,9 +200,6 @@ class DecisionStumpClassifier(BaseEstimator, ClassifierMixin):
       self.att_index_ = best_index
       self.att_table_ = best_table
       self.att_categories_ = best_value_to_row
-      #print("best_att", best_att)
-      #print("self.att_index", self.att_index_)
-      #print("self.att_table", self.att_table_)
 
       totalCases = len(y)
       root_probs = np.zeros(self.n_classes_, dtype=float)
@@ -339,7 +280,6 @@ class DecisionStumpClassifier(BaseEstimator, ClassifierMixin):
         # if the case has the attribute, it has 1/8 chance of class 0, 5/8 of class 1, 2/8 of class 3
         # if it doesn't have the attribute, it has 4/5 chance of class 0, 0/5 of class 2, 1/5 of class 3
         value_to_row = self.att_categories_
-        #print("value to rows", value_to_row)
         c = 0
         for case in X:
           #print("case", case)
@@ -356,10 +296,8 @@ class DecisionStumpClassifier(BaseEstimator, ClassifierMixin):
               for classV in range(n_classes):
                 count = counts[classV] + self.alpha
                 p = (count) / total
-                # print("inserting ", p, "into ", c, ",", classV)
                 output[c, classV] = p
-                # print("output[c,classV]", output)
-                # print(output[c, classV])
+
             else:
               print(c, v, row, value_to_row, self.att_table_.shape, self.att_categories_)
               probs = self.root_probs_
@@ -374,5 +312,4 @@ class DecisionStumpClassifier(BaseEstimator, ClassifierMixin):
 
           c += 1
 
-        #print("output: ", output)
         return output

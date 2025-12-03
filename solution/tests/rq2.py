@@ -4,6 +4,7 @@ import pytest
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import pandas as pd
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
@@ -13,114 +14,61 @@ from scipy.stats import wilcoxon
 from solution.DecisionStumpClassifier import DecisionStumpClassifier
 from solution.TreeEnsembleClassifier import TreeEnsembleClassifier
 from provided_code import data_loaders as dl
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import friedmanchisquare
+from aeon.visualisation import plot_critical_difference
 
-'''
-RQ1 Does TreeEnsembleClassifier perform better on average when handling categorical 
-features natively than when used with one-hot encoding?
-
-Use the provided datasets w/ categorical features
-
-Choose one dataset for a deeper case study
-
-Explore effect of key hyper parameters?
-
-Compare classifiers using accuracy (or error) and any other justified metrics from 
-the evaluation lecture (balanced accuracy and AUROC)
-
-Sound experimental design (repeated resampling or cross validation)
-
-CD diagram
-
-aeon?
-'''
-
-# def train_test_split(file):
-#   X,y = dl.load_tabular_xy(file)
-#   X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
-#   return X_train, X_test, y_train, y_test
-
-def cross_validation(file):
-  X,y = dl.load_tabular_xy(file)
-  pass
-
-def metrics_ohe(file, metric, random_state):
+def metrics_(file, random_state):
   print("Testing normal data vs ohe for", file)
   X,y = dl.load_tabular_xy(file)
   ohe = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
   X_ohe = ohe.fit_transform(X)
-  X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=random_state)
-  X_train_ohe, X_test_ohe, y_train_ohe, y_test_ohe = train_test_split(X_ohe, y, test_size=0.3, random_state=random_state)
-  clf0 = TreeEnsembleClassifier(average_probas=True)
-  clf1 = TreeEnsembleClassifier(average_probas=True)
+  X_train, X_test, y_train, y_test = train_test_split(X_ohe, y, test_size=0.3, random_state=random_state)
+  clf0 = TreeEnsembleClassifier(average_probas=True, random_state=random_state)
+  clf1 = RandomForestClassifier(n_estimators=50, random_state=random_state)
+  clf2 = AdaBoostClassifier(n_estimators=50, random_state=random_state)
   clf0.fit(X_train, y_train)
-  clf1.fit(X_train_ohe, y_train_ohe)
+  clf1.fit(X_train, y_train)
+  clf2.fit(X_train, y_train)
   pred0 = clf0.predict(X_test)
-  pred1 = clf1.predict(X_test_ohe)
+  pred1 = clf1.predict(X_test)
+  pred2 = clf2.predict(X_test)
   prob0 = clf0.predict_proba(X_test)
-  prob1 = clf1.predict_proba(X_test_ohe)
+  prob1 = clf1.predict_proba(X_test)
+  prob2 = clf2.predict_proba(X_test)
 
-  if(metric == "accuracy"):
-    acc0 = accuracy_score(y_test, pred0)
-    acc1 = accuracy_score(y_test_ohe, pred1)
-    return acc0, acc1
-  if(metric == "balanced_accuracy"):
-    bacc0 = balanced_accuracy_score(y_test, pred0)
-    bacc1 = balanced_accuracy_score(y_test_ohe, pred1)
-    return bacc0, bacc1
-  if(metric == "log_loss"):
-    ll0 = log_loss(y_test, prob0, labels=np.unique(y))
-    ll1 = log_loss(y_test_ohe, prob1, labels=np.unique(y))
-    return ll0, ll1
-  if(metric =="roc auc"): # need to check if its two class or multiclass first
-    if(len(np.unique(y)) == 2):
-      roc0 = roc_auc_score(y_test, prob0[:,1], labels=np.unique(y))
-      roc1 = roc_auc_score(y_test_ohe, prob1[:,1], labels=np.unique(y))
-    else:
-      roc0 = roc_auc_score(y_test, prob0, labels=np.unique(y), multi_class="ovr")
-      roc1 = roc_auc_score(y_test_ohe, prob1, labels=np.unique(y), multi_class="ovr")
-    return roc0, roc1
+  acc0 = accuracy_score(y_test, pred0)
+  acc1 = accuracy_score(y_test, pred1)
+  acc2 = accuracy_score(y_test, pred2)
+  a = [acc0, acc1, acc2]
+  bacc0 = balanced_accuracy_score(y_test, pred0)
+  bacc1 = balanced_accuracy_score(y_test, pred1)
+  bacc2 = balanced_accuracy_score(y_test, pred2)
+  b = [bacc0, bacc1, bacc2]
+  ll0 = log_loss(y_test, prob0, labels=clf0.classes_)
+  ll1 = log_loss(y_test, prob1, labels=clf1.classes_)
+  ll2 = log_loss(y_test, prob2, labels=clf2.classes_)
+  l= [ll0, ll1, ll2]
+  if(len(np.unique(y)) == 2):
+    roc0 = roc_auc_score(y_test, prob0[:,1], labels=np.unique(y))
+    roc1 = roc_auc_score(y_test, prob1[:,1], labels=np.unique(y))
+    roc2 = roc_auc_score(y_test, prob2[:,1], labels=np.unique(y))
+  else:
+    roc0 = roc_auc_score(y_test, prob0, labels=np.unique(y), multi_class="ovr")
+    roc1 = roc_auc_score(y_test, prob1, labels=np.unique(y), multi_class="ovr")
+    roc2 = roc_auc_score(y_test, prob2, labels=np.unique(y), multi_class="ovr")
+  r = [roc0, roc1, roc2]
+  return a, b, l, r
 
-#  cm0 = confusion_matrix(y_test, pred0)
-#  cm1 = confusion_matrix(y_test, pred1)
-  #print("Confusion matrix:")
-  #print("normal: \n", cm0)
-  #print("ohe: \n", cm1)
-  #roc0 = roc_auc_score(y_test, prob0, multi_class='ovo')
-  #roc1 = roc_auc_score(y_test, prob1, multi_class='ovo')
-  #print("ROC AUC:")
-  #print("normal: ", roc0)
-  #print("ohe: ", roc1)
-  #prec0 = precision_score(y_test, pred0)
-  #prec1 = precision_score(y_test, pred1)
-  #print("Precision:")
-  #print("normal: ", prec0)
-  #print("ohe: ", prec1)
-  #mc0 = matthews_corrcoef(y_test, prob0)
-  #mc1 = matthews_corrcoef(y_test, prob1)
-  #print("Matthews correlation coefficient:")
-  #print("normal: ", mc0)
-  #print("ohe: ", mc1)
-  #f10 = f1_score(y_test, pred0)
-  #f11 = f1_score(y_test, pred1)
-  #print("F1: ")
-  #print("normal: ", f10)
-  #print("ohe: ", f11)
-
-  #clf0metrics = [acc0, bacc0]
-  #clf1metrics = [acc1, bacc1]
-
-  #confusion matrix is generated but not rly used here
-  #prec, mcc and f1 r mostly used for 2 class problems
-
-  #return clf0metrics, clf1metrics
-
-def save_results(metrics, clf1_scores, clf2_scores, clf1_label, clf2_label, title, filename):
-
+def save_results(metrics, clf1_scores, clf2_scores, clf3_scores, clf1_label, clf2_label, clf3_label, title, filename):
   x = np.arange(len(metrics))
-  width = 0.35
+  width = 0.25
   plt.figure(figsize = (10,6))
-  bars1 = plt.bar(x - width/2, clf1_scores, width, label=clf1_label, color="mediumpurple")
-  bars2 = plt.bar(x + width/2, clf2_scores, width, label=clf2_label, color="plum")
+  bars1 = plt.bar(x - width, clf1_scores, width, label=clf1_label, color="mediumpurple")
+  bars2 = plt.bar(x, clf2_scores, width, label=clf2_label, color="plum")
+  bars3 = plt.bar(x + width, clf3_scores, width, label=clf3_label, color="lightsteelblue")
 
   plt.yticks(np.arange(0, 1.21, 0.2))
   plt.grid(axis='y', linestyle='--', alpha=0.6)
@@ -138,6 +86,7 @@ def save_results(metrics, clf1_scores, clf2_scores, clf1_label, clf2_label, titl
       )
   add_labels(bars1)
   add_labels(bars2)
+  add_labels(bars3)
 
   plt.ylabel("Score")
   plt.ylim(0,1.2)
@@ -146,8 +95,106 @@ def save_results(metrics, clf1_scores, clf2_scores, clf1_label, clf2_label, titl
   plt.legend()
 
   plt.tight_layout()
-  plt.savefig("rq1metrics.png")
+  plt.savefig("rq2metrics.png")
   plt.show()
+
+def test_metrics():
+  treeAcc = []
+  forestAcc = []
+  adaAcc = []
+  treeBacc = []
+  forestBacc = []
+  adaBacc = []
+  treeLL = []
+  forestLL = []
+  adaLL = []
+  treeRA = []
+  forestRA = []
+  adaRA = []
+  files = ["data/balance-scale/balance-scale.data",
+           "data/balloons/balloons.data",
+           "data/chess-krvk/chess-krvk.data",
+           "data/chess-krvkp/chess-krvkp.data",
+           "data/contraceptive-method/contraceptive-method.data",
+           "data/connect-4/connect-4.data",
+           "data/habermans-survival/habermans-survival.data",
+           "data/hayes-roth/hayes-roth.data",
+           "data/led-display/led-display.data",
+           "data/lymphography/lymphography.data",
+           "data/molecular-promoters/molecular-promoters.data",
+           "data/molecular-splice/molecular-splice.data",
+           "data/monks-1/monks-1.data",
+           "data/monks-2/monks-2.data",
+           "data/monks-3/monks-3.data",
+           "data/nursery/nursery.data",
+           "data/optdigits/optdigits.data",
+           "data/pendigits/pendigits.data",
+           "data/semeion/semeion.data",
+           "data/spect-heart/spect-heart.data",
+           "data/tic-tac-toe/tic-tac-toe.data",
+           "data/zoo/zoo.data"]
+  for f in files:
+    tAcc = []
+    tBacc = []
+    tLl = []
+    tRc = []
+    rAcc = []
+    rBacc = []
+    rLl = []
+    rRc = []
+    aAcc = []
+    aBacc = []
+    aLl = []
+    aRc = []
+    for i in range(5):
+      a, b, l, r = metrics_(f, i)
+      tAcc.append(a[0])
+      tBacc.append(b[0])
+      tLl.append(l[0])
+      tRc.append(r[0])
+      rAcc.append(a[1])
+      rBacc.append(b[1])
+      rLl.append(l[1])
+      rRc.append(r[1])
+      aAcc.append(a[2])
+      aBacc.append(b[2])
+      aLl.append(l[2])
+      aRc.append(r[2])
+    treeAcc.append(np.average(tAcc))
+    treeBacc.append(np.average(tBacc))
+    treeLL.append(np.average(tLl))
+    treeRA.append(np.average(tRc))
+    forestAcc.append(np.average(rAcc))
+    forestBacc.append(np.average(rBacc))
+    forestLL.append(np.average(rLl))
+    forestRA.append(np.average(rRc))
+    adaAcc.append(np.average(aAcc))
+    adaBacc.append(np.average(aBacc))
+    adaLL.append(np.average(aLl))
+    adaRA.append(np.average(aRc))
+  print(treeAcc)
+  print(treeBacc)
+  print(treeLL)
+  print(treeRA)
+  print(forestAcc)
+  print(forestBacc)
+  print(forestLL)
+  print(forestRA)
+  print(adaAcc)
+  print(adaBacc)
+  print(adaLL)
+  print(adaRA)
+  np.savetxt("treeBacc.csv", treeBacc, delimiter=",")
+  np.savetxt("forestBacc.csv", forestBacc, delimiter=",")
+  np.savetxt("adaBacc.csv", adaBacc, delimiter=",")
+  tree_scores = [np.average(treeAcc), np.average(treeBacc), np.average(treeLL), np.average(treeRA)]
+  forest_scores = [np.average(forestAcc), np.average(forestBacc), np.average(forestLL), np.average(forestRA)]
+  ada_scores = [np.average(adaAcc), np.average(adaBacc), np.average(adaLL), np.average(adaRA)]
+  metrics = ["Accuracy", "Balanced accuracy", "Log loss", "Roc auc"]
+  save_results(metrics, tree_scores, forest_scores, ada_scores, "Tree Ensemble", "Random Forest", "AdaBoost", "treeEnsemble vs randomForest vs adaBoost", "rq2metrics")
+
+
+
 
 def test_fig():
   #i want to do it so that it finds the average over all datasets for normal and ohe
@@ -277,17 +324,54 @@ def test_wilcoxon():
 
 
 
-def test_cd():
+def getBacc():
+  files = ["data/balance-scale/balance-scale.data",
+           "data/balloons/balloons.data",
+           "data/chess-krvk/chess-krvk.data",
+           "data/chess-krvkp/chess-krvkp.data",
+           "data/contraceptive-method/contraceptive-method.data",
+           "data/connect-4/connect-4.data",
+           "data/habermans-survival/habermans-survival.data",
+           "data/hayes-roth/hayes-roth.data",
+           "data/led-display/led-display.data",
+           "data/lymphography/lymphography.data",
+           "data/molecular-promoters/molecular-promoters.data",
+           "data/molecular-splice/molecular-splice.data",
+           "data/monks-1/monks-1.data",
+           "data/monks-2/monks-2.data",
+           "data/monks-3/monks-3.data",
+           "data/nursery/nursery.data",
+           "data/optdigits/optdigits.data",
+           "data/pendigits/pendigits.data",
+           "data/semeion/semeion.data",
+           "data/spect-heart/spect-heart.data",
+           "data/tic-tac-toe/tic-tac-toe.data",
+           "data/zoo/zoo.data"]
+  treeBacc = []
+  forestBacc = []
+  adaBacc = []
+  for f in files:
+    tBacc = []
+    rBacc = []
+    aBacc = []
+    for i in range(5):
+      t, r, a = metrics_(f, i)
+      tBacc.append(t)
+      rBacc.append(r)
+      aBacc.append(a)
+    treeBacc.append(np.average(tBacc))
+    forestBacc.append(np.average(rBacc))
+    adaBacc.append(np.average(aBacc))
+  return [treeBacc, forestBacc, adaBacc]
 
-  pass
 
 def bacc_per_data():
   """
   Averages the balanced accuracy per dataset over random seeds 0 - 4
   Returns
   -------
-  rows - datasets
-  columns - bacc normal vs ohe data
+  rows - data
+  columns - bacc dataset0 vs ohe dataset1
   """
   output = []
   files = ["data/balance-scale/balance-scale.data",
@@ -327,7 +411,7 @@ def bacc_per_data():
   return output
 
 def test_ranked_acc():
-  scores = bacc_per_data()
+  scores = np.vstack(getBacc()).T
   winners = np.argmax(scores, axis=1)
   fileNames = ["balance-scale",
                "balloons",
@@ -351,7 +435,7 @@ def test_ranked_acc():
                "spect-heart",
                "tic-tac-toe",
                "zoo"]
-  dataNames = ["Normal", "OHE"]
+  dataNames = ["TreeEnsemble", "RandomForest", "AdaBoost"]
   fig, ax = plt.subplots(figsize = (8,3))
   ax.axis("off")
 
@@ -369,10 +453,44 @@ def test_ranked_acc():
       columns=dataNames + ['Winner']
   )
   df.insert(0, 'Dataset', fileNames)
-  df.to_csv("rq1_bacc_table.csv", index=False)
+  df.to_csv("rq2_bacc_table.csv", index=False)
 
   plt.show()
   return
+
+def test_cd():
+  # uses pairwise wilcoxon sign rank
+  # has default value of 0.1 critical value for statistical test of difference
+  treeEnsemble = []
+  randomForest = []
+  adaBoost = []
+  scores = np.vstack([treeEnsemble, randomForest, adaBoost]).T
+  labels = ["Tree Ensemble", "Random Forest", "AdaBoost"]
+  files = ["balance-scale",
+               "balloons",
+               "chess-krvk",
+               "chess-krvkp",
+               "connect-4",
+               "contraceptive-method",
+               "habermans-survival",
+               "hayes-roth",
+               "led-display",
+               "lymphography",
+               "molecular-promoters",
+               "molecular-splice",
+               "monks-1",
+               "monks-2",
+               "monks-3",
+               "nursery",
+               "optdigits",
+               "pendigits",
+               "semeion",
+               "spect-heart",
+               "tic-tac-toe",
+               "zoo"]
+  fig, ax, p_values = plot_critical_difference(scores, labels, return_p_values=True)
+  fig.savefig("cd_diag.pngjui8")
+
 
 def test_logloss():
   files = ["data/balance-scale/balance-scale.data",

@@ -80,13 +80,29 @@ def test_using_data():
     classes, counts = np.unique(y, return_counts=True)
     n_classes = len(classes)
 
+    # Count unique categories per feature
+    feature_cardinalities = [len(np.unique(X[:, idx])) for idx in
+                             range(n_features)]
+
+    # Build frequency map: {category_count: num_features}
+    from collections import Counter
+    freq = Counter(feature_cardinalities)
+
+    # Format: "2→1, 5→2"
+    feature_category_counts_str = ", ".join(
+        f"{cat}:{count}" for cat, count in sorted(freq.items()))
+
+    classes_str = ", ".join([str(c) for c in classes])
+    class_dist_str = ", ".join([f"{cls}: {cnt}"
+                                for cls, cnt in zip(classes, counts)])
+
     summary = {
       'Name': fileNames[i-1],
       'Samples': n_samples,
       'Features': n_features,
+      '(category-count:feature-count)': feature_category_counts_str,
       'Number of classes': n_classes,
-      'Classes': classes,
-      'Class distribution': dict(zip(classes, counts)),
+      'Class distribution': class_dist_str,
     }
     summary_list.append(summary)
     # Before creating the DataFrame

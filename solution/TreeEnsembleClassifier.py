@@ -42,6 +42,15 @@ class TreeEnsembleClassifier(BaseEstimator, ClassifierMixin):
     -------
     nothing - raise a ValueError if float attributes detected
     """
+    for v in X.ravel():
+      if isinstance(v, str):
+        try:
+          f = float(v)
+          if not f.is_integer():
+            raise TypeError(
+              "X contains float values; only categorical features are allowed.")
+        except ValueError:
+          pass
   pass
 
   def random_sample(self, X, y):
